@@ -73,11 +73,11 @@ public class Libro {
         this.ubicacionBiblioteca = ubicacionBiblioteca;
     }
 
-    public int getISBN() {
+    public String getISBN() {
         return ISBN;
     }
 
-    public void setISBN(int iSBN) {
+    public void setISBN(String iSBN) {
         ISBN = iSBN;
     }
 
@@ -105,4 +105,9 @@ public class Libro {
         this.usuarioLibro = usuarioLibro;
     }
 
+    @Override
+    public String toString() {
+        // TODO Auto-generated method stub
+        return titulo + "   " + autor + "   " + editorial + "   " + estadoPrestamo + "   " + ubicacionBiblioteca + "   " + ISBN + "   " + precio + "€   " + bibliotecarioPrestado + "   " + usuarioLibro;
+    }
 }
