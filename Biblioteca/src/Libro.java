@@ -4,14 +4,14 @@ public class Libro {
     private String editorial;
     private boolean estadoPrestamo;
     private int ubicacionBiblioteca;
-    private int ISBN;
+    private String ISBN;
     private double precio;
     private String bibliotecarioPrestado;
     private String usuarioLibro;
     
     public Libro() {}
 
-    public Libro(String titulo, String autor, String editorial, int ubicacionBiblioteca, int iSBN, double precio) {
+    public Libro(String titulo, String autor, String editorial, int ubicacionBiblioteca, String iSBN, double precio) {
         this.titulo = titulo;
         this.autor = autor;
         this.editorial = editorial;
@@ -21,7 +21,7 @@ public class Libro {
     }
     
     public Libro(String titulo, String autor, String editorial, boolean estadoPrestamo, int ubicacionBiblioteca,
-            int iSBN, double precio, String bibliotecarioPrestado, String usuarioLibro) {
+            String iSBN, double precio, String bibliotecarioPrestado, String usuarioLibro) {
         this.titulo = titulo;
         this.autor = autor;
         this.editorial = editorial;
