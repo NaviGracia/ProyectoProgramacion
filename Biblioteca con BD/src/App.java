@@ -1,31 +1,15 @@
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.PreparedStatement;
+import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.Scanner;
 
 public class App extends Libro{
-    static ArrayList<String> empleados = new ArrayList<>();
-    static ArrayList<String> usuarios = new ArrayList<>();    
-    static ArrayList<Libro> libros = new ArrayList<>();
     static Scanner sc = new Scanner(System.in);
 
-    public static void precargaColecciones(){
-        try {
-            empleados.add("Alberto");
-            empleados.add("Encarna");
-            empleados.add("Estela");
-            empleados.add("Manolo");
-            empleados.add("Agustín");
-            usuarios.add("usu1");
-            usuarios.add("usu2");
-            usuarios.add("usu3");
-            usuarios.add("usu4");
-            usuarios.add("usu5");
-        } catch (Exception e) {
-            System.out.println("Error en la precarga de colecciones");
-        }
-    }
-
-    public static void altaLibro(){
+    public static void altaLibro(Connection conexion){
         try {
             System.out.println("Introduzca el titulo:");
             String titulo = sc.nextLine();
@@ -41,7 +25,23 @@ public class App extends Libro{
             double precio = sc.nextDouble();
             sc.nextLine();
 
-            libros.add(new Libro(titulo, autor, editorial, ubicacion, ISBN, precio));
+            conexion.setAutoCommit(false);
+
+            String sentenciaSQL = "INSERT INTO libros VALUES(?, ?, ?, ?, ?, ?)";
+            PreparedStatement sentencia = null;
+            sentencia = conexion.prepareStatement(sentenciaSQL);
+            sentencia.setString(1, titulo);
+            sentencia.setString(2, autor);
+            sentencia.setString(3, editorial);
+            sentencia.setInt(4, ubicacion);
+            sentencia.setString(5, ISBN);
+            sentencia.setDouble(6, precio);
+
+            sentencia.executeUpdate();
+
+            conexion.commit();
+            
+            System.out.println("Libro añadido");
         } catch (Exception e) {
             // TODO: handle exception
             System.out.println("Error en dar el alta del libro");
@@ -312,23 +312,29 @@ public class App extends Libro{
         
     }
     public static void main(String[] args) throws Exception {
-        //Precargando colección empleados y usuarios
-        precargaColecciones();
-
+        //Conexión BD
         try {
+            Class.forName("org.postgresql.Driver"); //Aquí está dando fallo
+            } catch (Exception e) {
+            // TODO: handle exception
+            System.out.println("Error al registrar el driver de PostgresQL");
+        }
+        
+        try { 
+            Connection conexion = null;
+            conexion = DriverManager.getConnection("jdbc:postgresql://localhost:5432/Biblioteca", "dam", "dam");
+
             int eleccion = 0;
             do {
-                //Objetos Anti-Hardcoding
-                libros.add(new Libro("El Mentalista", "Camilla Läckberg", "Editorial Planeta", false, 1, "978-84-08-25519-2", 14.99, null, null));
                 //Menú Principal
                 System.out.println("Bienvenido al sistema gestor de la biblioteca: \n 1. Dar de alta un libro \n 2. Búsqueda de libro \n 3. Dar de baja un libro \n 4. Alquilar libro \n 5. Devolución libro \n 6. Gestión de emplead@s \n 7. Gestión de usuari@s \n 8. Salir del sistema");
                 eleccion = sc.nextInt();
                 sc.nextLine();
                 switch (eleccion) {
                     case 1:
-                        altaLibro();
+                        altaLibro(conexion);
                         break;
-                    case 2:
+                    /* case 2:
                         menuBusquedaLibro();
                         break;
                     case 3:
@@ -352,7 +358,8 @@ public class App extends Libro{
                     default:
                         System.out.println("Nº Incorrecto");
                         break;
-                }
+                        */
+                } 
             } while (eleccion!=8);
         } catch (Exception e) {
             // TODO: handle exception
