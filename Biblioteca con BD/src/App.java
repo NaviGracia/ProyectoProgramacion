@@ -1,13 +1,25 @@
+import java.math.BigDecimal;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.PreparedStatement;
+import java.sql.ResultSet;
 import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.Scanner;
 
 public class App extends Libro{
+    public static final String ANSI_RESET = "\u001B[0m";
+    public static final String ANSI_RED = "\u001B[31m";
     static Scanner sc = new Scanner(System.in);
+
+    public static void librosToString( PreparedStatement sentencia, ResultSet rs){
+        rs = sentencia.executeQuery();
+        System.out.println("Libros encontrados:");
+        while (rs.next()) {
+            System.out.println(ANSI_RED + rs.getString(1) + " | " + rs.getString(2) + " | " + rs.getString(3) + " | " + rs.getBoolean(4) + " | " + rs.getInt(5) + " | " + rs.getString(6) + " | " + rs.getDouble(7) + "€ | " + rs.getString(8) + " | " + rs.getString(9) + ANSI_RESET);
+        }
+    }
 
     public static void altaLibro(Connection conexion){
         try {
@@ -19,15 +31,14 @@ public class App extends Libro{
             String editorial = sc.nextLine();
             System.out.println("Introduzca la ubicación (pasillo numérico):");
             int ubicacion = sc.nextInt();
+            sc.nextLine();
             System.out.println("Introduzca el ISBN:");
             String ISBN = sc.nextLine();
             System.out.println("Introduzca el precio:");
-            double precio = sc.nextDouble();
+            BigDecimal precio = sc.nextBigDecimal();
             sc.nextLine();
 
-            conexion.setAutoCommit(false);
-
-            String sentenciaSQL = "INSERT INTO libros VALUES(?, ?, ?, ?, ?, ?)";
+            String sentenciaSQL = "INSERT INTO libros VALUES(?, ?, ?, 'false',?, ?, ?, null, null)";
             PreparedStatement sentencia = null;
             sentencia = conexion.prepareStatement(sentenciaSQL);
             sentencia.setString(1, titulo);
@@ -35,11 +46,11 @@ public class App extends Libro{
             sentencia.setString(3, editorial);
             sentencia.setInt(4, ubicacion);
             sentencia.setString(5, ISBN);
-            sentencia.setDouble(6, precio);
+            sentencia.setBigDecimal(6, precio);
 
             sentencia.executeUpdate();
 
-            conexion.commit();
+            sentencia.close();
             
             System.out.println("Libro añadido");
         } catch (Exception e) {
@@ -48,101 +59,82 @@ public class App extends Libro{
         }
     }
 
-    public static void menuBusquedaLibro(){
+    public static void menuBusquedaLibro(Connection conexion, Statement st){
         try {
             int x = 1;
             System.out.println("Que va a introducir para la búsqueda: \n 1. Título \n 2. Autor \n 3. Editorial \n 4. Ubicación \n 5. ISBN \n 6. Nombre del empleado que ha prestado el libro \n 7. Estado préstamo \n 8. Nombre usuario que ha alquilado el libro \n 9. Salir");
             int eleccionBusquedaLibro = sc.nextInt();
             sc.nextLine();
             if (eleccionBusquedaLibro!=9) {
+                PreparedStatement sentencia = null;
+                ResultSet rs = null;
+                String sentenciaSQL = null;
                 switch (eleccionBusquedaLibro) {
                     case 1:
                         System.out.println("Introduzca el título del libro que desea buscar:");
                         String busquedaTitulo = sc.nextLine();
-                        System.out.println("Libros encontrados:");
-                        for (Libro lib:libros) {
-                            if (lib.getTitulo().equalsIgnoreCase(busquedaTitulo)) {
-                                System.out.println(x + ". " + lib.toString());
-                                x++;
-                            }
-                        }
+
+                        sentenciaSQL = "SELECT * FROM libros WHERE titulo = ?";
+                        
+                        sentencia = conexion.prepareStatement(sentenciaSQL);
+                        sentencia.setString(1, busquedaTitulo);
+                        librosToString(sentencia, rs);           
                         break;
                     case 2:
                         System.out.println("Introduzca el autor del libro que desea buscar:");
                         String busquedaAutor = sc.nextLine();
-                        System.out.println("Libros encontrados:");
-                        for (Libro lib:libros) {
-                            if (lib.getAutor().equalsIgnoreCase(busquedaAutor)) {
-                                System.out.println(x + ". " + lib.toString());
-                                x++;
-                            }
-                        }
+                        sentenciaSQL = "SELECT * FROM libros WHERE autor = ?";
+                        sentencia = conexion.prepareStatement(sentenciaSQL);
+                        sentencia.setString(1, busquedaAutor);
+                        librosToString(sentencia, rs);
                         break;
                     case 3:
-                        System.out.println("Introduzca el título del libro que desea buscar:");
+                        System.out.println("Introduzca la editorial del libro que desea buscar:");
                         String busquedaEditorial = sc.nextLine();
-                        System.out.println("Libros encontrados:");
-                        for (Libro lib:libros) {
-                            if (lib.getEditorial().equalsIgnoreCase(busquedaEditorial)) {
-                                System.out.println(x + ". " + lib.toString());
-                                x++;
-                            }
-                        }
+                        sentenciaSQL = "SELECT * FROM libros WHERE editorial = ?";
+                        sentencia = conexion.prepareStatement(sentenciaSQL);
+                        sentencia.setString(1, busquedaEditorial);
+                        librosToString(sentencia, rs);
                         break;
                     case 4:
                         System.out.println("Introduzca la ubicación del libro que desea buscar:");
                         int busquedaUbicacion = sc.nextInt();
-                        System.out.println("Libros encontrados:");
-                        for (Libro lib:libros) {
-                            if (lib.getUbicacionBiblioteca()==busquedaUbicacion) {
-                                System.out.println(x + ". " + lib.toString());
-                                x++;
-                            }
-                        }
+                        sentenciaSQL = "SELECT * FROM libros WHERE ubicacion_biblioteca = ?";
+                        sentencia = conexion.prepareStatement(sentenciaSQL);
+                        sentencia.setInt(1, busquedaUbicacion);
+                        librosToString(sentencia, rs);
                         break;
                     case 5:
                         System.out.println("Introduzca el ISBN del libro que desea buscar:");
                         String busquedaISBN = sc.nextLine();
-                        System.out.println("Libros encontrados:");
-                        for (Libro lib:libros) {
-                            if (lib.getISBN().equalsIgnoreCase(busquedaISBN)) {
-                                System.out.println(x + ". " + lib.toString());
-                                x++;
-                            }
-                        }
+                        sentenciaSQL = "SELECT * FROM libros WHERE ISBN = ?";
+                        sentencia = conexion.prepareStatement(sentenciaSQL);
+                        sentencia.setString(1, busquedaISBN);
+                        librosToString(sentencia, rs);
                         break;
                     case 6:
                         System.out.println("Introduzca el nombre del empleado que desea buscar:");
                         String busquedaEmpleado = sc.nextLine();
-                        System.out.println("Libros encontrados:");
-                        for (Libro lib:libros) {
-                            if (lib.getBibliotecarioPrestado().equalsIgnoreCase(busquedaEmpleado)) {
-                                System.out.println(x + ". " + lib.toString());
-                                x++;
-                            }
-                        }
+                        sentenciaSQL = "SELECT * FROM libros WHERE bibliotecario_prestamo = ?";
+                        sentencia = conexion.prepareStatement(sentenciaSQL);
+                        sentencia.setString(1, busquedaEmpleado);
+                        librosToString(sentencia, rs);
                         break;
                     case 7:
                         System.out.println("Introduzca el estado del prestamo (true | false) que desea buscar:");
                         Boolean busquedaPrestamo = sc.nextBoolean();
-                        System.out.println("Libros encontrados:");
-                        for (Libro lib:libros) {
-                            if (lib.isEstadoPrestamo()==busquedaPrestamo) {
-                                System.out.println(x + ". " + lib.toString());
-                                x++;
-                            }
-                        }
+                        sentenciaSQL = "SELECT * FROM libros WHERE estado_prestamo = ?";
+                        sentencia = conexion.prepareStatement(sentenciaSQL);
+                        sentencia.setBoolean(1, busquedaPrestamo);
+                        librosToString(sentencia, rs);
                         break;
                     case 8:
-                        System.out.println("Introduzca el del usuario que desea buscar:");
+                        System.out.println("Introduzca el nombre del usuario que desea buscar:");
                         String busquedaUsuario = sc.nextLine();
-                        System.out.println("Libros encontrados:");
-                        for (Libro lib:libros) {
-                            if (lib.getUsuarioLibro().equalsIgnoreCase(busquedaUsuario)) {
-                                System.out.println(x + ". " + lib.toString());
-                                x++;
-                            }
-                        }
+                        sentenciaSQL = "SELECT * FROM libros WHERE usuario_prestamo = ?";
+                        sentencia = conexion.prepareStatement(sentenciaSQL);
+                        sentencia.setString(1, busquedaUsuario);
+                        librosToString(sentencia, rs);
                         break;
                     case 9:
                         System.out.println("Saliendo al menú principal");
@@ -151,7 +143,6 @@ public class App extends Libro{
                         System.out.println("Nº Incorrecto");
                         break;
                 }
-                
             }
         } catch (Exception e) {
             // TODO: handle exception
@@ -159,88 +150,109 @@ public class App extends Libro{
         }
     }
 
-    public static void eliminarLibro(){
+    public static void eliminarLibro(Connection conexion){
         try {
             System.out.println("Introduzca el título del libro listado a eliminar:");
             String eliminar = sc.nextLine();
-            Iterator<Libro> iterador = libros.iterator();
-            while (iterador.hasNext()) {
-                if (iterador.next().getTitulo().equalsIgnoreCase(eliminar)) {
-                    libros.remove(iterador.next());
-                }
-            }
+            
+            String sentenciaSQL = "DELETE FROM libros WHERE titulo = " + eliminar;
+            PreparedStatement sentencia = null;
+            sentencia = conexion.prepareStatement(sentenciaSQL);
+            sentencia.executeUpdate();
+
         } catch (Exception e) {
             // TODO: handle exception
             System.out.println("Error en la eliminación del libro");
         }
     }
 
-    public static void alquilarLibro(){
+    public static void alquilarLibro(Connection conexion, Statement st){
         try {
             System.out.println("Mostrando libros disponibles:");
-            int x = 1;
-            for (Libro lib : libros) {
-                if (lib.isEstadoPrestamo()==false) {
-                    System.out.println(x + ".   " + lib.toString());
-                }
+            //Mostrando libros no alquilados            
+            ResultSet estado = st.executeQuery("SELECT * FROM libros WHERE estado_prestamo = false");
+            while (estado.next()) {
+                System.out.println(ANSI_RED + estado.getString(1) + " | " + estado.getString(2) + " | " + estado.getString(3) + " | " + estado.getBoolean(4) + " | " + estado.getInt(5) + " | " + estado.getString(6) + " | " + estado.getDouble(7) + "€ | " + estado.getString(8) + " | " + estado.getString(9) + ANSI_RESET);
             }
+            estado.close();
+            
             System.out.println("Introduzca el título del libro a alquilar:");
-            String libroAlquilado = sc.nextLine();
+//            String libroAlquilado = sc.nextLine();
+
+            //Mostrando usuarios            
+            System.out.println("Mostrando usuarios:");
+            ResultSet usuarios = st.executeQuery("SELECT * FROM usuarios");
+            while (usuarios.next()) {
+                System.out.println(ANSI_RED + usuarios.getString(1) + ANSI_RESET);
+            }
+            usuarios.close();
             System.out.println("Elige su usuario:");
-            for (String usu : usuarios) {
-                System.out.println(usu);
+//            String usuarioAlquiler = sc.nextLine();
+
+            //Mostrando empleados            
+            System.out.println("Mostrando empleados:");
+            ResultSet empleados = st.executeQuery("SELECT * FROM empleados");
+            while (empleados.next()) {
+                System.out.println(ANSI_RED + empleados.getString(1) + ANSI_RESET);
             }
-            String usuarioAlquiler = sc.nextLine();
+            empleados.close();
             System.out.println("Elige el nombre del empleado que le a atendido:");
-            for (String emp : empleados) {
-                System.out.println(emp);
-            }
-            String empleadoAlquiler = sc.nextLine();
-            Iterator<Libro> iterador = libros.iterator();
-            while (iterador.hasNext()) {
-                if (iterador.next().getTitulo().equalsIgnoreCase(libroAlquilado)) {
-                    iterador.next().setEstadoPrestamo(true);
-                    iterador.next().setBibliotecarioPrestado(empleadoAlquiler);
-                    iterador.next().setUsuarioLibro(usuarioAlquiler);
-                }
-            }
+//            String empleadoAlquiler = sc.nextLine();
+
+            //Modificando estado_prestamo del libro alquilado a true en la BD
+            String sentenciaSQL = "UPDATE libros SET estado_prestamo = 'true', bibliotecario_prestamo = ?, usuario_prestamo = ? WHERE titulo = ?";
+            PreparedStatement sentencia = null;
+            sentencia = conexion.prepareStatement(sentenciaSQL);
+            sentencia.setString(1, "Manolo");
+            sentencia.setString(2, "usu1");
+            sentencia.setString(3, "El Mentalista");
+            sentencia.executeUpdate();
+            sentencia.close();
+            
+            System.out.println("Libro Alquilado");
         } catch (Exception e) {
             // TODO: handle exception
             System.out.println("Error al alquilar el libro");
         }
     }
 
-    public static void devolucionLibro(){
+    public static void devolucionLibro(Connection conexion, Statement st){
         try {
+            ArrayList<String> titulos = new ArrayList<>();
+            //Consulta a la BD de los libros que están alquilados
             System.out.println("Mostrando libros alquilados:");
-            int x = 1;
-            for (Libro lib : libros) {
-                if (lib.isEstadoPrestamo()==true) {
-                    System.out.println(x + ".   " + lib.toString());
-                }
+            ResultSet alquilado = st.executeQuery("SELECT * FROM libros WHERE estado_prestamo = 'true'");
+            while (alquilado.next()) {
+                System.out.println(ANSI_RED + alquilado.getString(1) + " | " + alquilado.getString(2) + " | " + alquilado.getString(3) + " | " + alquilado.getBoolean(4) + " | " + alquilado.getInt(5) + " | " + alquilado.getString(6) + " | " + alquilado.getDouble(7) + "€ | " + alquilado.getString(8) + " | " + alquilado.getString(9) + ANSI_RESET);
+                titulos.add(alquilado.getString(1));
+                
             }
+            alquilado.close();
             System.out.println("Introduzca el título del libro a devolver:");
             String libroDevuelto = sc.nextLine();
-
-            Iterator<Libro> iterador = libros.iterator();
-            while (iterador.hasNext()) {
-                if (iterador.next().getTitulo().equalsIgnoreCase(libroDevuelto)) {
-                    if (iterador.next().isEstadoPrestamo()==false) {
-                        System.out.println("Este libro no está prestado");
-                    }else{
-                        iterador.next().setEstadoPrestamo(false);
-                        iterador.next().setBibliotecarioPrestado(null);
-                        iterador.next().setUsuarioLibro(null);
-                    }
+            int x = 0;
+            for (String comprobar : titulos) {
+                if (comprobar.equalsIgnoreCase(libroDevuelto)) {
+                    String sentenciaSQL = "UPDATE libros SET estado_prestamo = 'false', bibliotecario_prestamo = null, usuario_prestamo = null WHERE titulo = ?";
+                    PreparedStatement sentencia = null;
+                    sentencia = conexion.prepareStatement(sentenciaSQL);
+                    sentencia.setString(1, libroDevuelto);
+                    sentencia.executeUpdate();
+                    System.out.println("Devolución Completada");
+                    x = 1;
                 }
             }
+            if (x == 0) {
+                System.out.println("El libro introducido no está registrado como prestado en el sistema, por favor, revise si los datos se han introducido correctamentente");
+            }
+            
         } catch (Exception e) {
             // TODO: handle exception
             System.out.println("Error en la devolución del libro");
         }
     }
 
-    public static void menuGestionEmpleados(){
+    public static void menuGestionEmpleados(Connection conexion){
         try {
             System.out.println("Menú de Gestión de Empleados: \n 1. Listar Empleados \n 2. Dar de alta nuevo empleado \n 3. Dar de baja a empleado");
             int eleccion = sc.nextInt();
@@ -276,7 +288,7 @@ public class App extends Libro{
         
     }
 
-    public static void menuGestionUsuarios(){
+    public static void menuGestionUsuarios(Connection conexion){
         try {
             System.out.println("Menú de Gestión de Usuarios: \n 1. Listar Usuarios \n 2. Dar de alta nuevo usuario \n 3. Dar de baja a empleado \n 4. Salir");
             int eleccion = sc.nextInt();
@@ -323,6 +335,7 @@ public class App extends Libro{
         try { 
             Connection conexion = null;
             conexion = DriverManager.getConnection("jdbc:postgresql://localhost:5432/Biblioteca", "dam", "dam");
+            Statement st = conexion.createStatement();
 
             int eleccion = 0;
             do {
@@ -334,31 +347,31 @@ public class App extends Libro{
                     case 1:
                         altaLibro(conexion);
                         break;
-                    /* case 2:
-                        menuBusquedaLibro();
+                    case 2:
+                        menuBusquedaLibro(conexion, st);
                         break;
                     case 3:
-                        menuBusquedaLibro();
-                        eliminarLibro();
+                        menuBusquedaLibro(conexion, st);
+                        eliminarLibro(conexion);
                         break;
                     case 4:
-                        alquilarLibro();
+                        alquilarLibro(conexion, st);
                         break;
                     case 5:
-                        devolucionLibro();
+                        devolucionLibro(conexion, st);
                         break;
                     case 6:
-                        menuGestionEmpleados();
+                        menuGestionEmpleados(conexion);
                         break;
                     case 7:
-                        menuGestionUsuarios();
+                        menuGestionUsuarios(conexion);
                         break;
                     case 8:
                         System.out.println("Programa finalizado");
+                        break;
                     default:
                         System.out.println("Nº Incorrecto");
                         break;
-                        */
                 } 
             } while (eleccion!=8);
         } catch (Exception e) {
