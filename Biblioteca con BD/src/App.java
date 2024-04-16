@@ -8,16 +8,20 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.Scanner;
 
-public class App extends Libro{
+public class App{
     public static final String ANSI_RESET = "\u001B[0m";
     public static final String ANSI_RED = "\u001B[31m";
     static Scanner sc = new Scanner(System.in);
-
-    public static void librosToString( PreparedStatement sentencia, ResultSet rs){
-        rs = sentencia.executeQuery();
-        System.out.println("Libros encontrados:");
-        while (rs.next()) {
+    
+    public static void librosToString(PreparedStatement sentencia, ResultSet rs){
+        try {
+            rs = sentencia.executeQuery();
+            System.out.println("Libros encontrados:");
+            while (rs.next()) {
             System.out.println(ANSI_RED + rs.getString(1) + " | " + rs.getString(2) + " | " + rs.getString(3) + " | " + rs.getBoolean(4) + " | " + rs.getInt(5) + " | " + rs.getString(6) + " | " + rs.getDouble(7) + "€ | " + rs.getString(8) + " | " + rs.getString(9) + ANSI_RESET);
+        }
+        } catch (Exception e) {
+            // TODO: handle exception
         }
     }
 
@@ -62,7 +66,8 @@ public class App extends Libro{
     public static void menuBusquedaLibro(Connection conexion, Statement st){
         try {
             int x = 1;
-            System.out.println("Que va a introducir para la búsqueda: \n 1. Título \n 2. Autor \n 3. Editorial \n 4. Ubicación \n 5. ISBN \n 6. Nombre del empleado que ha prestado el libro \n 7. Estado préstamo \n 8. Nombre usuario que ha alquilado el libro \n 9. Salir");
+            System.out.println("Parámetros de Búsqueda: \n 1. Título \n 2. Autor \n 3. Editorial \n 4. Ubicación \n 5. ISBN \n 6. Nombre del empleado que ha prestado el libro \n 7. Estado préstamo \n 8. Nombre usuario que ha alquilado el libro \n 9. Salir");
+            System.out.print("Introduzca un nº:");
             int eleccionBusquedaLibro = sc.nextInt();
             sc.nextLine();
             if (eleccionBusquedaLibro!=9) {
@@ -152,14 +157,17 @@ public class App extends Libro{
 
     public static void eliminarLibro(Connection conexion){
         try {
-            System.out.println("Introduzca el título del libro listado a eliminar:");
-            String eliminar = sc.nextLine();
-            
-            String sentenciaSQL = "DELETE FROM libros WHERE titulo = " + eliminar;
+            String sentenciaSQL = "DELETE FROM libros WHERE titulo = ?";
             PreparedStatement sentencia = null;
             sentencia = conexion.prepareStatement(sentenciaSQL);
+
+            System.out.println("Introduzca el título del libro listado a eliminar:");
+            String eliminar = sc.nextLine();
+            sentencia.setString(1, eliminar);
+            
             sentencia.executeUpdate();
 
+            System.out.println("Libro " + eliminar + " eliminado correctamente.");
         } catch (Exception e) {
             // TODO: handle exception
             System.out.println("Error en la eliminación del libro");
@@ -174,10 +182,11 @@ public class App extends Libro{
             while (estado.next()) {
                 System.out.println(ANSI_RED + estado.getString(1) + " | " + estado.getString(2) + " | " + estado.getString(3) + " | " + estado.getBoolean(4) + " | " + estado.getInt(5) + " | " + estado.getString(6) + " | " + estado.getDouble(7) + "€ | " + estado.getString(8) + " | " + estado.getString(9) + ANSI_RESET);
             }
+            
             estado.close();
             
             System.out.println("Introduzca el título del libro a alquilar:");
-//            String libroAlquilado = sc.nextLine();
+            String libroAlquilado = sc.nextLine();
 
             //Mostrando usuarios            
             System.out.println("Mostrando usuarios:");
@@ -187,7 +196,7 @@ public class App extends Libro{
             }
             usuarios.close();
             System.out.println("Elige su usuario:");
-//            String usuarioAlquiler = sc.nextLine();
+            String usuarioAlquiler = sc.nextLine();
 
             //Mostrando empleados            
             System.out.println("Mostrando empleados:");
@@ -197,15 +206,15 @@ public class App extends Libro{
             }
             empleados.close();
             System.out.println("Elige el nombre del empleado que le a atendido:");
-//            String empleadoAlquiler = sc.nextLine();
+            String empleadoAlquiler = sc.nextLine();
 
             //Modificando estado_prestamo del libro alquilado a true en la BD
             String sentenciaSQL = "UPDATE libros SET estado_prestamo = 'true', bibliotecario_prestamo = ?, usuario_prestamo = ? WHERE titulo = ?";
             PreparedStatement sentencia = null;
             sentencia = conexion.prepareStatement(sentenciaSQL);
-            sentencia.setString(1, "Manolo");
-            sentencia.setString(2, "usu1");
-            sentencia.setString(3, "El Mentalista");
+            sentencia.setString(1, empleadoAlquiler);
+            sentencia.setString(2, usuarioAlquiler);
+            sentencia.setString(3, libroAlquilado);
             sentencia.executeUpdate();
             sentencia.close();
             
@@ -254,69 +263,103 @@ public class App extends Libro{
 
     public static void menuGestionEmpleados(Connection conexion){
         try {
-            System.out.println("Menú de Gestión de Empleados: \n 1. Listar Empleados \n 2. Dar de alta nuevo empleado \n 3. Dar de baja a empleado");
-            int eleccion = sc.nextInt();
-            switch (eleccion) {
-                case 1:
-                    for (String nombre : empleados) {
-                       System.out.println(nombre); 
-                    }
-                    break;
-                case 2:
-                    System.out.println("Inserte el nombre del nuevo empleado:");
-                    String nuevoEmp = sc.nextLine();
-                    empleados.add(nuevoEmp);
-                    System.out.println("Empleado " + nuevoEmp + " añadido correctamente");
-                    break;
-                case 3:
-                    System.out.println("Inserte el nombre del empleado a eliminar:");
-                    String eliminarEmp = sc.nextLine();
-                    empleados.remove(eliminarEmp);
-                    System.out.println("Empleado " + eliminarEmp + " eliminado correctamente");
-                    break;
-                case 4:
-                    System.out.println("Saliendo al menú principal");
-                    break;
-                default:
-                    System.out.println("Nº Incorrecto");
-                    break;
-            }
+            int eleccion;
+            do {
+                System.out.println("Menú de Gestión de Empleados: \n 1. Listar Empleados \n 2. Dar de alta nuevo empleado \n 3. Dar de baja a empleado \n 4. Salir");
+                eleccion = sc.nextInt();
+                sc.nextLine();
+                PreparedStatement sentencia = null;
+                String sentenciaSQL;
+                switch (eleccion) {
+                    case 1:
+
+                        sentenciaSQL = "SELECT * FROM empleados";
+                        sentencia = conexion.prepareStatement(sentenciaSQL);
+                        ResultSet rt = sentencia.executeQuery();
+                        System.out.println("Mostrando Empleados:");
+                        while (rt.next()) {
+                            System.out.println(ANSI_RED + rt.getString(1) + ANSI_RESET);
+                        }
+                        break;
+                    case 2:
+                        System.out.println("Inserte el nombre del nuevo empleado:");
+                        String nuevoEmp = sc.nextLine();
+                        sentenciaSQL = "INSERT INTO empleados VALUES(?)";
+                        sentencia = conexion.prepareStatement(sentenciaSQL);
+                        sentencia.setString(1, nuevoEmp);
+                        sentencia.executeUpdate();
+                        System.out.println("Empleado " + nuevoEmp + " añadido correctamente");
+                        break;
+                    case 3:
+                        System.out.println("Inserte el nombre del empleado a eliminar:");
+                        String eliminarEmp = sc.nextLine();
+                        sentenciaSQL = "DELETE FROM empleados WHERE nombre_emp = ?";
+                        sentencia = conexion.prepareStatement(sentenciaSQL);
+                        sentencia.setString(1, eliminarEmp);
+                        sentencia.executeUpdate();
+                        System.out.println("Empleado " + eliminarEmp + " eliminado correctamente");
+                        break;
+                    case 4:
+                        System.out.println("Saliendo al menú principal");
+                        break;
+                    default:
+                        System.out.println("Nº Incorrecto");
+                        break;
+                }
+            } while (eleccion!=4);
         } catch (Exception e) {
             // TODO: handle exception
             System.out.println("Error en la gestión de empleados");
         }
-        
     }
 
     public static void menuGestionUsuarios(Connection conexion){
         try {
-            System.out.println("Menú de Gestión de Usuarios: \n 1. Listar Usuarios \n 2. Dar de alta nuevo usuario \n 3. Dar de baja a empleado \n 4. Salir");
-            int eleccion = sc.nextInt();
-            switch (eleccion) {
-                case 1:
-                    for (String nombre : usuarios) {
-                       System.out.println(nombre); 
-                    }
-                    break;
-                case 2:
-                    System.out.println("Inserte el nombre del nuevo usuario:");
-                    String nuevoUsu = sc.nextLine();
-                    empleados.add(nuevoUsu);
-                    System.out.println("Usuario " + nuevoUsu + " añadido correctamente");
-                    break;
-                case 3:
-                    System.out.println("Inserte el nombre del usuario a eliminar:");
-                    String eliminarUsu = sc.nextLine();
-                    empleados.remove(eliminarUsu);
-                    System.out.println("Usuario " + eliminarUsu + " eliminado correctamente");
-                    break;
-                case 4:
-                    System.out.println("Saliendo al menú principal");
-                    break;
-                default:
-                    System.out.println("Nº Incorrecto");
-                    break;
-            }
+            int eleccion;
+            do {
+                System.out.println("Menú de Gestión de Usuarios: \n 1. Listar Usuarios \n 2. Dar de alta nuevo usuario \n 3. Dar de baja a empleado \n 4. Salir");
+                eleccion = sc.nextInt();
+                sc.nextLine();
+                PreparedStatement sentencia = null;
+                String sentenciaSQL;
+                switch (eleccion) {
+                    case 1:
+
+                        sentenciaSQL = "SELECT * FROM usuarios";
+                                
+                        sentencia = conexion.prepareStatement(sentenciaSQL);
+                        ResultSet rt = sentencia.executeQuery();
+                        System.out.println("Mostrando Usuarios:");
+                        while (rt.next()) {
+                            System.out.println(ANSI_RED + rt.getString(1) + ANSI_RESET);
+                        }
+                        break;
+                    case 2:
+                        System.out.println("Inserte el nombre del nuevo usuario:");
+                        String nuevoUsu = sc.nextLine();
+                        sentenciaSQL = "INSERT INTO usuarios VALUES(?)";
+                        sentencia = conexion.prepareStatement(sentenciaSQL);
+                        sentencia.setString(1, nuevoUsu);
+                        sentencia.executeUpdate();
+                        System.out.println("Usuario " + nuevoUsu + " añadido correctamente");
+                        break;
+                    case 3:
+                        System.out.println("Inserte el nombre del usuario a eliminar:");
+                        String eliminarUsu = sc.nextLine();
+                        sentenciaSQL = "DELETE FROM Usuarios WHERE nombre_usu = ?";
+                        sentencia = conexion.prepareStatement(sentenciaSQL);
+                        sentencia.setString(1, eliminarUsu);
+                        sentencia.executeUpdate();
+                        System.out.println("Usuario " + eliminarUsu + " eliminado correctamente");
+                        break;
+                    case 4:
+                        System.out.println("Saliendo al menú principal");
+                        break;
+                    default:
+                        System.out.println("Nº Incorrecto");
+                        break;
+                }
+            } while (eleccion!=4);
         } catch (Exception e) {
             // TODO: handle exception
             System.out.println("Error en la gestión de usuarios");
@@ -326,7 +369,7 @@ public class App extends Libro{
     public static void main(String[] args) throws Exception {
         //Conexión BD
         try {
-            Class.forName("org.postgresql.Driver"); //Aquí está dando fallo
+            Class.forName("org.postgresql.Driver"); 
             } catch (Exception e) {
             // TODO: handle exception
             System.out.println("Error al registrar el driver de PostgresQL");
